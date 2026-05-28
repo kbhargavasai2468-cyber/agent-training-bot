@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "agentbot_secret_2024"
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+client = None
 
 TRAINING_DATA = """
 === REAL ESTATE AGENT TRAINING MANUAL ===
@@ -159,8 +159,8 @@ def index():
 @app.route('/chat', methods=['POST'])
 def chat():
     global client
-    if not client:
-        return jsonify({'error': 'API not configured. Please enter your API key first.', 'success': False})
+    if client is None:
+        client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
     data = request.json
     user_message = data.get('message', '').strip()
