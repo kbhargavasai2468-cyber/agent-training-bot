@@ -594,147 +594,128 @@
 
 <script>
   let currentLanguage = 'English';
-  let isWaiting = false;
+let isWaiting = false;
 
+function setLang(lang, btn) {
+  currentLanguage = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
 
+function getTime() {
+  return new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+}
 
-  function showErr(msg) {
-    const err = document.getElementById('setup-error');
-    err.textContent = msg;
-    err.style.display = 'block';
-  }
+function hideWelcome() {
+  const w = document.getElementById('welcome-screen');
+  if (w) w.style.display = 'none';
+}
 
-  function setLang(lang, btn) {
-    currentLanguage = lang;
-    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
+function addMessage(text, role, isError=false) {
+  hideWelcome();
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `message ${role}${isError ? ' error-bubble' : ''}`;
+  const avatar = role === 'bot' ? '🤖' : '👤';
+  const avatarClass = role === 'bot' ? 'bot-avatar' : 'user-avatar';
+  div.innerHTML = `
+    <div class="msg-avatar ${avatarClass}">${avatar}</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${escapeHtml(text)}</div>
+      <div class="msg-time">${getTime()}</div>
+    </div>`;
+  msgs.appendChild(div);
+  scrollToBottom();
+}
 
-  function getTime() {
-    return new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-  }
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-  function hideWelcome() {
-    const w = document.getElementById('welcome-screen');
-    if (w) { w.style.display = 'none'; }
-  }
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'typing-indicator';
+  div.id = 'typing';
+  div.innerHTML = `
+    <div class="msg-avatar bot-avatar">🤖</div>
+    <div class="typing-bubble">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  msgs.appendChild(div);
+  scrollToBottom();
+}
 
-  function addMessage(text, role, isError=false) {
-    hideWelcome();
-    const msgs = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = `message ${role}${isError ? ' error-bubble' : ''}`;
+function hideTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
 
-    const avatar = role === 'bot' ? '🤖' : '👤';
-    const avatarClass = role === 'bot' ? 'bot-avatar' : 'user-avatar';
+function scrollToBottom() {
+  const area = document.getElementById('chat-area');
+  area.scrollTop = area.scrollHeight;
+}
 
-    div.innerHTML = `
-      <div class="msg-avatar ${avatarClass}">${avatar}</div>
-      <div class="msg-content">
-        <div class="msg-bubble">${escapeHtml(text)}</div>
-        <div class="msg-time">${getTime()}</div>
-      </div>`;
+function sendMessage() {
+  if (isWaiting) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage(text, 'user');
+  input.value = '';
+  autoResize(input);
+  isWaiting = true;
+  document.getElementById('send-btn').disabled = true;
+  showTyping();
+  fetch('/chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: text, language: currentLanguage})
+  })
+  .then(r => r.json())
+  .then(data => {
+    hideTyping();
+    if (data.success) {
+      addMessage(data.response, 'bot');
+    } else {
+      addMessage(data.error || 'Something went wrong.', 'bot', true);
+    }
+  })
+  .catch(() => {
+    hideTyping();
+    addMessage('Connection error. Please check the server.', 'bot', true);
+  })
+  .finally(() => {
+    isWaiting = false;
+    document.getElementById('send-btn').disabled = false;
+  });
+}
 
-    msgs.appendChild(div);
-    scrollToBottom();
-  }
+function sendQuick(text) {
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
 
-  function escapeHtml(text) {
-    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+function resetChat() {
+  fetch('/reset', {method: 'POST'});
+  document.getElementById('messages').innerHTML = '';
+  const w = document.getElementById('welcome-screen');
+  if (w) w.style.display = 'flex';
+}
 
-  function showTyping() {
-    const msgs = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = 'typing-indicator';
-    div.id = 'typing';
-    div.innerHTML = `
-      <div class="msg-avatar bot-avatar">🤖</div>
-      <div class="typing-bubble">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-      </div>`;
-    msgs.appendChild(div);
-    scrollToBottom();
-  }
-
-  function hideTyping() {
-    const t = document.getElementById('typing');
-    if (t) t.remove();
-  }
-
-  function scrollToBottom() {
-    const area = document.getElementById('chat-area');
-    area.scrollTop = area.scrollHeight;
-  }
-
-  function sendMessage() {
-    if (isWaiting) return;
-    const input = document.getElementById('user-input');
-    const text = input.value.trim();
-    if (!text) return;
-
-    addMessage(text, 'user');
-    input.value = '';
-    autoResize(input);
-
-    isWaiting = true;
-    document.getElementById('send-btn').disabled = true;
-    showTyping();
-
-    fetch('/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: text, language: currentLanguage})
-    })
-    .then(r => r.json())
-    .then(data => {
-      hideTyping();
-      if (data.success) {
-        addMessage(data.response, 'bot');
-      } else {
-        addMessage(data.error || 'Something went wrong. Try again.', 'bot', true);
-      }
-    })
-    .catch(() => {
-      hideTyping();
-      addMessage('Connection error. Please check the server.', 'bot', true);
-    })
-    .finally(() => {
-      isWaiting = false;
-      document.getElementById('send-btn').disabled = false;
-    });
-  }
-
-  function sendQuick(text) {
-    document.getElementById('user-input').value = text;
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
     sendMessage();
   }
+}
 
-  function resetChat() {
-    fetch('/reset', {method: 'POST'});
-    document.getElementById('messages').innerHTML = '';
-    const w = document.getElementById('welcome-screen');
-    if (w) w.style.display = 'flex';
-  }
-
-  function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }
-
-  function autoResize(el) {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  }
-
-  // Fade out animation
-  const style = document.createElement('style');
-  style.textContent = '@keyframes fadeOut { to { opacity: 0; } }';
-  document.head.appendChild(style);
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
 </script>
 </body>
 </html>
