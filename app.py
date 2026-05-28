@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session
 from groq import Groq
+import os
 
 app = Flask(__name__)
 app.secret_key = "agentbot_secret_2024"
