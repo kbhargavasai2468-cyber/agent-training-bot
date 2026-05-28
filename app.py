@@ -4,7 +4,7 @@ from groq import Groq
 app = Flask(__name__)
 app.secret_key = "agentbot_secret_2024"
 
-client = None
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 TRAINING_DATA = """
 === REAL ESTATE AGENT TRAINING MANUAL ===
@@ -154,30 +154,6 @@ def index():
     session['conversation'] = []
     return render_template('index.html')
 
-@app.route('/setup', methods=['POST'])
-def setup():
-    global client
-    data = request.json
-    api_key = data.get('api_key', '').strip()
-
-    if not api_key:
-        return jsonify({'success': False, 'error': 'Please enter your API key'})
-
-    try:
-        client = Groq(api_key=api_key)
-        # Test call
-        test = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": "Say hi"}],
-            max_tokens=5
-        )
-        if test.choices[0].message.content:
-            return jsonify({'success': True})
-        else:
-            return jsonify({'success': False, 'error': 'No response from API'})
-    except Exception as e:
-        client = None
-        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/chat', methods=['POST'])
 def chat():
