@@ -49,10 +49,3 @@ agent_training_bot/
 - **Frontend**: HTML, CSS, JavaScript
 - **Knowledge Base**: Built-in training data (can be extended)
 
----
-
-## 📤 Submission Checklist
-- [x] Prototype built
-- [ ] Upload to GitHub
-- [ ] Deploy on Render.com (free)
-- [ ] Submit GitHub + Deployed links
