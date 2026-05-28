@@ -596,50 +596,13 @@
   let currentLanguage = 'English';
   let isWaiting = false;
 
-  function connectAPI() {
-    const key = document.getElementById('api-key-input').value.trim();
-    const btn = document.getElementById('connect-btn');
-    const err = document.getElementById('setup-error');
 
-    if (!key) { showErr('Please enter your API key'); return; }
-    if (!key) {  return; }
-
-    btn.textContent = 'Connecting...';
-    btn.disabled = true;
-    err.style.display = 'none';
-
-    fetch('/setup', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({api_key: key})
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        document.getElementById('setup-overlay').style.animation = 'fadeOut 0.4s ease forwards';
-        setTimeout(() => document.getElementById('setup-overlay').style.display = 'none', 400);
-      } else {
-        showErr('Invalid key or connection failed: ' + (data.error || 'Unknown error'));
-        btn.textContent = 'Connect & Start Training →';
-        btn.disabled = false;
-      }
-    })
-    .catch(() => {
-      showErr('Network error. Is the server running?');
-      btn.textContent = 'Connect & Start Training →';
-      btn.disabled = false;
-    });
-  }
 
   function showErr(msg) {
     const err = document.getElementById('setup-error');
     err.textContent = msg;
     err.style.display = 'block';
   }
-
-  document.getElementById('api-key-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') connectAPI();
-  });
 
   function setLang(lang, btn) {
     currentLanguage = lang;
